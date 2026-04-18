@@ -17,6 +17,7 @@ This project serves as a reference implementation for developers who want to bui
 - [Configuration Management](#configuration-management)
 - [Operational Endpoints](#operational-endpoints)
 - [Containerization](#containerization)
+- [Deploying to Render](#deploying-to-render)
 - [Testing](#testing)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
@@ -427,10 +428,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 
-EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+EXPOSE 1000
 
 ENTRYPOINT ["uv", "run", "finance-mcp-server"]
 ```
@@ -441,7 +439,7 @@ Key decisions:
 - **Two-stage `COPY`/`RUN`** &mdash; Dependencies are installed before copying source code. Since `pyproject.toml` and `uv.lock` change rarely, Docker caches this layer. Code changes only rebuild the final layer.
 - **`--frozen`** &mdash; Uses the exact versions from `uv.lock`. No resolution at build time &mdash; deterministic, fast builds.
 - **`--no-dev`** &mdash; Excludes test and dev dependencies from the production image.
-- **`HEALTHCHECK`** &mdash; Polls the `/health` endpoint. Container orchestrators (Docker Swarm, ECS, Kubernetes) use this to determine if the container is ready.
+- **`EXPOSE 1000`** &mdash; Documents the default port from `MCPSettings`. Note that `EXPOSE` is metadata only &mdash; the actual port is controlled by the `PORT` environment variable at runtime. Cloud platforms like Render inject their own `PORT`.
 - **`PYTHONUNBUFFERED=1`** &mdash; Forces stdout/stderr to be unbuffered so logs appear in real-time in `docker logs`.
 
 ### Docker Compose
@@ -476,6 +474,52 @@ docker compose logs -f yfinance-mcp
 
 # Stop
 docker compose down
+```
+
+---
+
+## Deploying to Render
+
+[Render](https://render.com/) can deploy this server directly from the Dockerfile. A few things to know about how Render interacts with the container:
+
+### How Render Handles Ports
+
+Render **ignores** the `EXPOSE` directive in the Dockerfile. Instead, it injects its own `PORT` environment variable (typically `10000`) and expects your app to bind to `0.0.0.0:$PORT`. Because `MCPSettings` uses pydantic-settings, the injected `PORT` env var automatically overrides the code default &mdash; no code changes needed.
+
+### Environment Variables on Render
+
+Upload your environment variables in the Render dashboard (or via an env file). **Do not include `HOST` or `PORT`**:
+
+- **`HOST`** &mdash; Omit it. The code defaults to `0.0.0.0`, which is correct for containers. Setting it to your public Render URL (e.g., `https://your-app.onrender.com`) will cause a startup crash because uvicorn interprets it as a bind address.
+- **`PORT`** &mdash; Omit it. Render injects its own `PORT` that your app picks up automatically.
+
+The remaining variables (Scalekit credentials, auth metadata, etc.) should be set as usual:
+
+```env
+# Scalekit OAuth
+CLIENT_ID=your-scalekit-client-id
+CLIENT_SECRET=your-scalekit-client-secret
+ENV_URL=https://your-env.scalekit.com
+AUDIENCE=your-audience
+
+# OAuth protected resource metadata (JSON string)
+AUTH_METADATA='{"resource": "https://your-app.onrender.com", "authorization_servers": ["https://your-env.scalekit.com"]}'
+```
+
+### Render Service Settings
+
+| Setting | Value |
+|---------|-------|
+| **Environment** | Docker |
+| **Build Command** | *(auto-detected from Dockerfile)* |
+| **Health Check Path** | `/health` |
+
+### MCP Client Configuration
+
+Once deployed, configure your MCP client to connect to the Render URL:
+
+```
+https://your-app.onrender.com/stocks/mcp
 ```
 
 ---
