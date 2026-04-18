@@ -10,7 +10,7 @@ from .misc.art import _print_banner
 def main() -> None:
     """Start the Finance MCP Server."""
     settings = get_mcp_settings()
-    _print_banner(settings.host, settings.port, settings.mcp_transport)
+    _print_banner(settings.mcp_transport)
     app = create_app()
     uvicorn.run(
         app,

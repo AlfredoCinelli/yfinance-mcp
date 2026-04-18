@@ -17,17 +17,13 @@ $$\   $$ |  $$ |$$\ $$ |  $$ |$$ |     $$  _$$<
 """
 
 
-def _print_banner(host: str, port: int, transport: str) -> None:
+def _print_banner(transport: str) -> None:
     """Render a styled startup banner to stderr."""
     console = Console(stderr=True)
 
-    display_host = "localhost" if host in ("0.0.0.0", "::") else host
-
     info = Table.grid(padding=(0, 1))
     info.add_row("⚡", "[bold cyan]Finance MCP Server[/]")
-    info.add_row("📡", f"[green]http://{display_host}:{port}[/]")
     info.add_row("🔧", f"Transport: [yellow]{transport}[/]")
-    info.add_row("📄", f"[dim]Docs: http://{display_host}:{port}/docs[/]")
 
     logo = Text(_LOGO, style="bold cyan")
 
