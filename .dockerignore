@@ -1,0 +1,23 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+.ruff_cache
+
+# IDE
+.vscode
+.idea
+
+# Local secrets (injected via docker-compose / env)
+local/.env
+local/.gitkeep
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

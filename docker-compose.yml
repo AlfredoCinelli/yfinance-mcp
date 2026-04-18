@@ -1,0 +1,9 @@
+services:
+  yfinance-mcp:
+    build: .
+    container_name: yfinance-mcp
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - local/.env
+    restart: unless-stopped
