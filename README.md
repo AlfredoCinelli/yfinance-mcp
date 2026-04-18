@@ -25,31 +25,9 @@ This project serves as a reference implementation for developers who want to bui
 
 ## Architecture Overview
 
-```
-                          ┌──────────────────────────────────────────┐
-                          │          FastAPI Application             │
-                          │                                          │
-   MCP Client             │  ┌──────────┐   ┌───────────────────┐   │
-   (Claude, etc.)  ───────┼──│  Auth     │──▶│  Operational      │   │
-        │                 │  │Middleware │   │  Routes            │   │
-        │                 │  │(Scalekit) │   │  /health           │   │
-        │                 │  └──────────┘   │  /info              │   │
-        │                 │       │         │  /.well-known/...   │   │
-        │                 │       ▼         └───────────────────┘   │
-        │                 │  ┌──────────────────────────────┐       │
-        └─────────────────┼──│  FastMCP (mounted at /stocks) │       │
-                          │  │                                │       │
-                          │  │  POST /stocks/mcp              │       │
-                          │  │  ┌────────────────────────┐   │       │
-                          │  │  │ get_stock_price        │   │       │
-                          │  │  │ get_multiple_stocks    │   │       │
-                          │  │  └────────────────────────┘   │       │
-                          │  └──────────────────────────────┘       │
-                          └──────────────────────────────────────────┘
-                                            │
-                                            ▼
-                                     Yahoo Finance API
-```
+<p align="center">
+  <img src="assets/architecture.svg" alt="Architecture Overview" width="800"/>
+</p>
 
 The key design idea: **FastMCP handles the MCP protocol**, while **FastAPI provides the HTTP layer** &mdash; authentication, CORS, health checks, and API docs. FastMCP is *mounted as a sub-application* inside FastAPI, giving you the best of both worlds.
 
@@ -269,23 +247,9 @@ MCP servers handling sensitive data must authenticate clients. This project impl
 
 ### How It Works
 
-```
-MCP Client                    MCP Server                    Scalekit
-    │                             │                             │
-    │  1. POST /oauth/token       │                             │
-    │  (client_credentials)       ├─────────────────────────────▶
-    │                             │                             │
-    │  ◀── access_token ──────────┤                             │
-    │                             │                             │
-    │  2. POST /stocks/mcp        │                             │
-    │  Authorization: Bearer <t>  │                             │
-    │  ─────────────────────────▶ │                             │
-    │                             │  3. validate_access_token() │
-    │                             │  ─────────────────────────▶ │
-    │                             │  ◀── valid/invalid ─────── │
-    │                             │                             │
-    │  ◀── MCP response ──────── │                             │
-```
+<p align="center">
+  <img src="assets/auth-flow.svg" alt="OAuth 2.0 Authentication Flow" width="800"/>
+</p>
 
 ### The Auth Middleware
 
